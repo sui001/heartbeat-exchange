@@ -1,0 +1,25 @@
+# arduino-cli build profile. Pins the board, partition scheme, core and library
+# versions this sketch is known to build against, so the build survives a
+# machine rebuild instead of living in an IDE dropdown.
+#
+# Build with:  arduino-cli compile --profile esp32s3
+# Upload with: arduino-cli upload --profile esp32s3 -p COM<n>
+#
+# PartitionScheme=min_spiffs is deliberate. On the stock "default" scheme this
+# sketch used 97% of a 1.2MB app partition, leaving about 36KB of headroom,
+# which any new feature would blow through. min_spiffs gives 1.9MB and keeps
+# OTA. If OTA is never wanted here, huge_app gives 3MB instead.
+
+profiles:
+  esp32s3:
+    notes: ESP32-S3 SuperMini, USB CDC on boot must be enabled for serial
+    fqbn: esp32:esp32:esp32s3:PartitionScheme=min_spiffs,CDCOnBoot=cdc
+    platforms:
+      - platform: esp32:esp32 (3.3.10)
+    libraries:
+      - FastLED (3.10.5)
+      - Adafruit DRV2605 Library (1.2.4)
+      - Adafruit BusIO (1.17.4)
+      - SparkFun MAX3010x Pulse and Proximity Sensor Library (1.1.2)
+
+default_profile: esp32s3

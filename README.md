@@ -72,9 +72,25 @@ Both nodes are pinned to WiFi channel 1. Both must be on the same channel.
 
 Arduino IDE settings for the ESP32-S3 SuperMini: board "ESP32S3 Dev Module",
 USB CDC On Boot **enabled** (otherwise the sketch runs but serial output never
-appears), flash size 4MB, partition scheme "Default 4MB with spiffs". The COM
-port number changes after each flash, so reselect it before opening the serial
-monitor.
+appears), flash size 4MB, and partition scheme **"Minimal SPIFFS (1.9MB APP
+with OTA/128KB SPIFFS)"**. The COM port number changes after each flash, so
+reselect it before opening the serial monitor.
+
+The partition scheme is not optional. On the stock "Default 4MB with spiffs"
+scheme this sketch fills 97% of the 1.2MB app partition, leaving roughly 36KB
+of headroom, so almost any addition fails to link. Minimal SPIFFS gives 1.9MB
+and keeps OTA available. Huge APP gives 3MB if OTA is never wanted here.
+
+### Reproducible build
+
+`heartbeat_node/sketch.yaml` pins the board, partition scheme, core version and
+all four library versions, so the build can be reproduced without relying on
+whatever happens to be installed:
+
+```
+arduino-cli compile --profile esp32s3
+arduino-cli upload  --profile esp32s3 -p COM<n>
+```
 
 ## What the LED means
 
