@@ -46,10 +46,16 @@ The two nodes are paired by **hardcoded MAC address**, not by discovery. Each
 sketch holds the MAC of the *other* node in the `peerAddress` block near the top
 of the file, selected by `#if DEVICE_ID == 1`.
 
-This means a fresh pair of boards will not talk to each other until you replace
-those two MACs. There is no automatic pairing and no broadcast fallback. If the
-LEDs behave correctly but no haptic ever fires, a wrong MAC is the first thing
-to check.
+This is deliberate. Broadcast-based discovery was tried and gave persistent
+trouble that was never fully diagnosed. Pinning the peer MAC is what made the
+link work reliably, so treat it as the intended design and not as a shortcut
+waiting to be replaced. Moving back to broadcast pairing re-introduces the
+original problem.
+
+The tradeoff is that a fresh pair of boards will not talk to each other until
+you replace those two MACs. There is no automatic pairing and no broadcast
+fallback. If the LEDs behave correctly but no haptic ever fires, a wrong MAC is
+the first thing to check.
 
 To find a board's MAC, flash any sketch that prints `WiFi.macAddress()` with
 `WiFi.mode(WIFI_STA)` set, and read it over serial.
@@ -108,9 +114,10 @@ their exact instant of beating.
 
 ## Known gaps
 
-- The docstring at the top of the sketch describes a broadcast-with-self-filter
-  scheme that the code does not implement. The code is unicast to a hardcoded
-  MAC. Trust the code and this README, not that comment block.
+- The docstring at the top of the sketch still describes the earlier
+  broadcast-with-self-filter scheme, which was abandoned for the hardcoded-MAC
+  approach above. The comment block is stale, not a spec. Trust the code and
+  this README.
 - `PULSE_COLOR` is defined but never used. `IDLE_COLOR` is used once at startup
   and then never again, because `handleLED()` uses literal colours instead. The
   named constants do not currently control anything you see after boot.
