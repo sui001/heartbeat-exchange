@@ -10,8 +10,10 @@
  * CONFIGURATION:
  *   DEVICE_ID 1 = first unit
  *   DEVICE_ID 2 = second unit
- *   Both devices broadcast to the ESP-NOW broadcast address.
- *   Each ignores its own packets (matched by DEVICE_ID in payload).
+ *   Nodes are paired by HARDCODED peer MAC (see peerAddress below), not by
+ *   broadcast discovery. Broadcast pairing was tried and was unreliable;
+ *   pinning the MAC is what made the link work, so do not revert to it.
+ *   A fresh pair of boards needs both peerAddress values replaced.
  *
  * WIRING (both devices identical):
  *   MAX30102  SDA  -> GPIO8
@@ -32,9 +34,10 @@
  *   - esp_now.h / WiFi.h (built into ESP32 Arduino core)
  *
  * FLASH INSTRUCTIONS:
- *   1. Set DEVICE_ID to 1, flash first unit
- *   2. Set DEVICE_ID to 2, flash second unit
- *   3. Power both on -- they find each other automatically via broadcast
+ *   1. Set DEVICE_ID to 1, check its peerAddress is node 2's MAC, flash unit 1
+ *   2. Set DEVICE_ID to 2, check its peerAddress is node 1's MAC, flash unit 2
+ *   3. Power both on. If LEDs look right but no haptic ever fires, a wrong
+ *      peerAddress is the first thing to check.
  */
 
 // ─── CHANGE THIS PER DEVICE ───────────────────────────────────────────────────
@@ -72,11 +75,13 @@
 // See Adafruit DRV2605 library or datasheet for full waveform library list
 #define HAPTIC_EFFECT  1
 
-// Colour when own pulse detected (RGB)
-#define PULSE_COLOR  CRGB::Crimson
-
-// Colour of slow idle breathe when no finger detected
-#define IDLE_COLOR   CRGB(0, 10, 30)   // dim blue
+// LED colours. These are the values handleLED() actually uses -- previously the
+// named constants disagreed with the literals in the function and had no effect
+// on anything you could see, so they were set to match rather than the reverse
+// (changing them to the old declared values would have altered the appearance).
+#define PULSE_COLOR    CRGB::Red        // own beat detected
+#define WAITING_COLOR  CRGB(0, 60, 0)   // finger on sensor, no beat lock yet
+#define IDLE_COLOR     CRGB(0, 0, 60)   // online, no finger
 
 // ─── GLOBALS ──────────────────────────────────────────────────────────────────
 
@@ -151,8 +156,7 @@ void setup() {
   // RGB LED
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(LED_BRIGHTNESS);
-  leds[0] = IDLE_COLOR;
-  FastLED.show();
+  showColor(IDLE_COLOR);
 
   // I2C
   Wire.begin(8, 9);
@@ -254,26 +258,39 @@ void readOwnPulse() {
 // Green = finger detected, waiting for beat lock
 // Red flash = beat detected
 
+// Push to the LED only when the colour actually changes. handleLED() runs every
+// pass of the main loop, and FastLED.show() on a WS2812 disables interrupts for
+// the length of the transfer, so calling it unconditionally was tying up the
+// loop continuously for no visible benefit.
+void showColor(const CRGB &c) {
+  static CRGB shown   = CRGB::Black;
+  static bool primed  = false;
+
+  if (primed && c == shown) return;
+
+  shown    = c;
+  primed   = true;
+  leds[0]  = c;
+  FastLED.show();
+}
+
 void handleLED() {
   if (!fingerOnSensor) {
-    leds[0] = CRGB(0, 0, 60);
-    FastLED.show();
+    showColor(IDLE_COLOR);
     return;
   }
 
   if (ownBeatFlag) {
     ownBeatFlag = false;
-    leds[0] = CRGB::Red;
-    FastLED.show();
+    showColor(PULSE_COLOR);
     return;
   }
 
   if (millis() - lastBeatTime < BLINK_DURATION_MS) {
-    leds[0] = CRGB::Red;
+    showColor(PULSE_COLOR);
   } else {
-    leds[0] = CRGB(0, 60, 0);
+    showColor(WAITING_COLOR);
   }
-  FastLED.show();
 }
 
 // ─── HAPTIC (other person's heartbeat) ───────────────────────────────────────

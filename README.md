@@ -114,12 +114,12 @@ their exact instant of beating.
 
 ## Known gaps
 
-- The docstring at the top of the sketch still describes the earlier
-  broadcast-with-self-filter scheme, which was abandoned for the hardcoded-MAC
-  approach above. The comment block is stale, not a spec. Trust the code and
-  this README.
-- `PULSE_COLOR` is defined but never used. `IDLE_COLOR` is used once at startup
-  and then never again, because `handleLED()` uses literal colours instead. The
-  named constants do not currently control anything you see after boot.
-- `handleLED()` calls `FastLED.show()` on every pass of the main loop rather
-  than only on change.
+- Not verified as compiling. `FastLED`, `Adafruit DRV2605`, and the SparkFun
+  MAX3010x library are not installed in the sketchbook this repo was assembled
+  from, so the sketch has not been built here. Install those three before the
+  first flash.
+- The felt phase is not locked to the sender's beat, only the rate. See "How
+  the beat gets across" above.
+- `flashError()` writes the LED directly rather than through `showColor()`.
+  That is intentional, since it needs to alternate on a fixed blink, and it
+  never returns anyway.
